@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link type="Image/x-icon" href="cat3.png" rel="icon">
+  <title>CatClick</title>
+</head>
+<body>
+  <div class="game">
+    <h1>CatClick</h1>
+    <h2 class="shop-title">Магазин скинов</h2>
+    <p>Score: <span id="score">0</span></p>
+    <img id="target" src="https://i.imgur.com/IkoixFP.png" alt="Cat">
+    <button id="open-shop">Открыть магазин</button>
+  <div class="skins-container" id="skins-container"></div>
+  <button id="reset">Сбросить прогресс</button>
+  <input type="text" id="cheat-code" placeholder="Введите чит-код">
+<button id="submit-cheat">OK</button>
+  <div class="confirm-modal" id="confirm-modal">
+    <div class="confirm-content">
+      <h3>Сбросить прогресс?</h3>
+      <p>Все очки и скины будут потеряны!</p>
+      <div class="confirm-buttons">
+        <button class="confirm-ok">ОК</button>
+        <button class="confirm-cancel">Отмена</button>
+      </div>
+    </div>
+  </div>
+  <audio id="click-sound" src="https://drive.google.com/uc?export=download&id=1AiK6gyELFlAals8hke33UefCJ_MySl2a"></audio>
+  </div>
+
+  <script>
+  let score = 0;
+  let currentSkin = 0;
+  let ownedSkins = [0 ];
+
+const scoreDisplay = document.getElementById('score');
+const target = document.getElementById('target');
+const openShopButton = document.getElementById('open-shop');
+const skinsContainer = document.getElementById('skins-container');
+const resetButton = document.getElementById('reset');
+const confirmModal = document.getElementById('confirm-modal');
+const confirmOk = document.querySelector('.confirm-ok');
+const confirmCancel = document.querySelector('.confirm-cancel');
+const clickSound = document.getElementById('click-sound');
+const cheatInput = document.getElementById('cheat-code');
+const submitCheat = document.getElementById('submit-cheat');
+
+const skins = [
+  { id: 0, src: "https://i.imgur.com/IkoixFP.png" , name: 'Обычный котик' , cost: 0, clickBonus: 0 },
+
+  { id: 1, src: "https://i.imgur.com/TSJiOte.png" , name: 'Бежевый котик' , cost: 100, clickBonus: 1 },
+
+  { id: 2, src: "https://imgur.com/jo2PWsP.png" , name: 'Серый котик' , cost: 250, clickBonus: 2 },
+
+  { id: 3, src: "https://i.imgur.com/3uB0FLl.jpg" , name: 'Рыжий котик' , cost: 500, clickBonus: 3 },
+];
+
+
+window.onload = () => {
+    let usedCheatCodes = localStorage.getItem('usedCheatCodes') ? JSON.parse(localStorage.getItem('usedCheatCodes')): [];
+    let storedScore = localStorage.getItem('score');
+    score = !isNaN(parseInt(storedScore)) ? parseInt(storedScore) : 0;
+    currentSkin = localStorage.getItem('currentSkin') ? parseInt(localStorage.getItem('currentSkin')) : 0;
+    ownedSkins = localStorage.getItem('ownedSkins') ? JSON.parse(localStorage.getItem('ownedSkins')) : [0];
+    scoreDisplay.textContent = score;
+    target.src = skins.find(skin => skin.id === currentSkin).src;
+    renderSkins();
+};
+
+openShopButton.addEventListener('click', () => {
+    skinsContainer.classList.toggle('open');
+    openShopButton.textContent = skinsContainer.classList.contains('open') ? 'Закрыть магазин' : 'Открыть магазин';
+    if (skinsContainer.classList.contains('open')) {
+      renderSkins();
+    }
+  });
+
+target.addEventListener('click', () => {
+  try {
+  const isBonus = Math.random() < 0.1;
+  const points = isBonus ? 2:1;
+  const skinBonus = skins.find(skin => skin.id === currentSkin).clickBonus || 0;
+  const totalPoints = points + skinBonus;
+  score += totalPoints;
+  scoreDisplay.textContent = score;
+  localStorage.setItem('score', score);
+  const pop = document.createElement('div');
+  pop.className = `score-pop ${isBonus ? 'bonus' : ' '}`;
+  pop.textContent = `+${totalPoints}`;
+    target.parentElement.appendChild(pop);
+    setTimeout(() => pop.remove(), isBonus ? 700 : 500);
+  } catch(e) {}
+  if (clickSound) {
+      clickSound.play().catch(e => console.error('Ошибка воспроизведения:', e));
+    }
+});
+
+submitCheat.addEventListener('click', () => {
+  const code = cheatInput.value.trim().toUpperCase();
+  let pointsToAdd = 0;
+  let message = '';
+
+  try {
+    if (usedCheatCodes.includes(code)) {
+      alert('Этот чит-код уже использован!');
+      cheatInput.value = '';
+      return;
+    }
+
+    switch (code) {
+      case 'ILOVECATS':
+        pointsToAdd = 100;
+        message = 'Получено 100 очков';
+        break;
+      case 'RICHKITTY':
+        pointsToAdd = 1000;
+        message = 'Получено 1000 очков';
+        break;
+      default:
+        message = 'Неверный чит-код';
+    }
+
+    if (pointsToAdd > 0) {
+      score += pointsToAdd;
+      scoreDisplay.textContent = score;
+      localStorage.setItem('score', score);
+      
+      usedCheatCodes.push(code);
+      localStorage.setItem('usedCheatCodes', JSON.stringify(usedCheatCodes));
+
+      const pop = document.createElement('div');
+      pop.className = 'score-pop';
+      pop.textContent = `+${pointsToAdd}`;
+      target.parentElement.appendChild(pop);
+      setTimeout(() => pop.remove(), 700);
+    }
+
+    if (message) {
+      alert(message);
+    }
+
+    renderSkins();
+    cheatInput.value = '';
+  } catch (e) {
+    cheatInput.value = '';
+    console.error('Ошибка применения чита:', e);
+  }
+});
+
+
+resetButton.addEventListener('click', () => {
+  confirmModal.classList.add('open');
+});
+
+confirmOk.addEventListener('click', () => {
+  try {
+    localStorage.removeItem('score');
+    localStorage.removeItem('currentSkin');
+    localStorage.removeItem('ownedSkins');
+    localStorage.removeItem('usedCheatCodes');
+    score = 0;
+    currentSkin = 0;
+    ownedSkins = [0];
+    usedCheatCodes = [];
+    scoreDisplay.textContent = score;
+    target.src = skins[0].src;
+    skinsContainer.classList.remove('open');
+    openShopButton.textContent = 'Открыть магазин';
+    confirmModal.classList.remove('open');
+  } catch (e) {
+    console.error('Ошибка:', e);
+    alert('Не удалось сбросить. Очистите кэш.');
+  }
+});
+
+confirmCancel.addEventListener('click', () => {
+  confirmModal.classList.remove('open');
+});
+
+function renderSkins() {
+  skinsContainer.innerHTML = '';
+  skins.forEach((skin) => {
+    const skinItem = document.createElement('div');
+    skinItem.className = 'skin-item';
+    skinItem.innerHTML = `
+      <img src="${skin.src}" alt="${skin.name}">
+      <p>${skin.name}</p>
+      <p>Цена: ${skin.cost} очков</p>
+      <p>Бонус: +${skin.clickBonus} за клик</p>
+      <button>${ownedSkins.includes(skin.id) ? (currentSkin === skin.id ? 'Выбрано' : 'Выбрать') : 'Купить'}</button>
+    `;
+    const button = skinItem.querySelector('button');
+    if (ownedSkins.includes(skin.id)) {
+      button.disabled = currentSkin === skin.id;
+      button.onclick = () => {
+        try {
+          currentSkin = skin.id;
+          target.src = skin.src;
+          localStorage.setItem('currentSkin', currentSkin);
+          renderSkins();
+        } catch (e) {
+          console.error('Ошибка выбора скина:', e);
+        }
+      };
+    } else {
+      button.disabled = score < skin.cost;
+      button.onclick = () => {
+        if (score >= skin.cost) {
+          try {
+            score -= skin.cost;
+            ownedSkins.push(skin.id);
+            scoreDisplay.textContent = score;
+            localStorage.setItem('score', score);
+            localStorage.setItem('ownedSkins', JSON.stringify(ownedSkins));
+            renderSkins();
+          } catch (e) {
+            console.error('Ошибка покупки:', e);
+          }
+        } else {
+          alert('Недостаточно очков!');
+        }
+      };
+    }
+    skinsContainer.appendChild(skinItem);
+  });
+}
+
+function updateSkins() {
+  renderSkins();
+}
+
+  </script>
+  <style>
+    * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    background: linear-gradient(to bottom, #a1c4fd, #c2e9fb);
+    font-family: Arial, sans-serif;
+    position: relative;
+    overflow: hidden;
+    height: 100vh;
+    margin: 0;
+  }
+
+  body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url(https://images.rawpixel.com/image_800/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIyLTA0L3YxMTYxLWItMDMxYi1sMjh0cHd0MC5qcGc.jpg) repeat-x center center;
+  background-size: cover;
+  opacity: 0.4;
+  animation: moveClouds 900s linear infinite;
+  z-index: -1;
+}
+@keyframes moveClouds {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+  
+  .game{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20vh;
+    text-align: center;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  .score-pop {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Comic Sans MS', Arial, sans-serif;
+  font-size: 20px;
+  color: #000000;
+  animation: popUp 1s ease forwards;
+  pointer-events: none;
+}
+@keyframes popUp {
+  0% { transform: translate(-50%, -50%); opacity: 1; }
+  100% { transform: translate(-50%, -100px); opacity: 0; }
+}
+
+  h1{
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 62px;
+    color: #8e44ad;
+  }
+
+  .skins-container {
+  display: none;
+  margin: 8px 0;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 2px solid #8e44ad;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 300px;
+}
+.skins-container.open {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+}
+.skins-container.open ~ #reset,
+.skins-container.open ~ #submit-cheat,
+.skins-container.open ~ #cheat-code {
+  display: none;
+}
+
+.skin-item {
+  display: block;
+  margin: 5px 0;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px;
+  border-radius: 8px;
+  border: 2px solid #8e44ad;
+}
+
+.skin-item img {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+}
+
+.skin-item p {
+  font-family: 'Comic Sans MS', Arial, sans-serif;
+  font-size: 12px;
+  color: #34495e;
+  margin: 3px 0;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  position: static;
+}
+.skin-item button {
+  padding: 4px 8px;
+  background: #ff6f61;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: 'Comic Sans MS', Arial, sans-serif;
+  font-size: 10px;
+  transition: background 0.2s ease;
+}
+
+.skin-item button:hover {
+  background: #e65a55;
+}
+.skin-item button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+#target {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+#target:active {
+    transform: scale(1.2);
+  }
+
+.shop-title {
+  font-family: 'Indie Flower', cursive;
+  font-size: 32px;
+  color: #34495e;
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  margin-top: 290px;
+  margin-left: 70px;
+}
+
+#open-shop {
+    position: absolute;
+    left: 20px;
+    top: 60px;
+    padding: 10px 20px;
+    background: #ff6f61;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Comic Sans MS', Arial, sans-serif;
+    font-size: 16px;
+    transition: transform 0.2s ease, background 0.2s ease;
+    margin-top: 300px;
+    margin-left: 100px;
+  }
+  #open-shop:hover {
+    transform: scale(1.05);
+    background: #e65a55;
+  }
+
+  #cheat-code {
+    cursor: text;
+    padding: 10px;
+  font-family: 'Comic Sans MS', Arial, sans-serif;
+  font-size: 16px;
+  border: 2px solid #8e44ad;
+  border-radius: 15px;
+  margin: 10px;
+  transition: transform 0.2s ease, background 0.2s ease;
+  }
+  #cheat-code:hover {
+    transform: scale(1.05);
+    background: #ffffff;
+  }
+
+  #submit-cheat {
+  padding: 10px 20px;
+  background: #ff6f61;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: 'Comic Sans MS', Arial, sans-serif;
+  font-size: 16px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+#submit-cheat:hover {
+  transform: scale(0.95);
+  background: #e65a55;
+}
+
+  #reset {
+    position: absolute;
+    right: 100px;
+    top: 60px;
+    padding: 10px 20px;
+    background: #ff6f61;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Comic Sans MS', Arial, sans-serif;
+    font-size: 16px;
+    transition: transform 0.2s ease, background 0.2s ease;
+    margin-top: 300px;
+    margin-left: 100px;
+  }
+  #reset:hover {
+    transform: scale(1.05);
+    background: #e65a55;
+  }
+  
+  p {
+  font-size: 32px;
+  font-family: 'Comic Sans MS', Arial, sans-serif;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #34495e;
+  background: linear-gradient(to right, #ff6f61, #ffb3ba); 
+  padding: 10px 20px;
+  border: none; 
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, background 0.2s ease;
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+p:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+p::before {
+  content: '';
+  position: absolute;
+  left: -30px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 24px;
+  color: #34495e;
+}
+p::after {
+  content: '';
+  position: absolute;
+  right: -30px;
+  top: 50%;
+  transform: translateY(-50%) rotate(180deg);
+  font-size: 24px;
+  color: #34495e;
+}
+
+
+
+  * {
+  opacity: 0;
+  animation: fadeIn 1s forwards;
+}
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+  .confirm-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirm-modal.open {
+  display: flex;
+}
+.confirm-content {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid #8e44ad;
+  border-radius: 10px;
+  padding: 15px;
+  text-align: center;
+  max-width: 250px;
+  width: 85%;
+  transform: scale(0.8);
+  opacity: 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.confirm-modal.open .confirm-content {
+  transform: scale(1);
+  opacity: 1;
+}
+.confirm-content h3 {
+  font-family: 'Indie Flower', cursive;
+  font-size: 20px;
+  color: #34495e;
+  margin-bottom: 8px;
+}
+
+.confirm-content p {
+  font-family: 'Comic Sans MS', Arial, sans-serif;
+  font-size: 14px;
+  color: #34495e;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  position: static;
+  margin-bottom: 15px;
+}
+.confirm-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.confirm-ok {
+  padding: 8px 15px;
+  background: #ff6f61;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: 'Comic Sans MS', Arial, sans-serif;
+  font-size: 14px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.confirm-ok:hover {
+  background: #e65a55;
+  transform: scale(1.05);
+}
+.confirm-cancel {
+  padding: 8px 15px;
+  background: #8e44ad;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: 'Comic Sans MS', Arial, sans-serif;
+  font-size: 14px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.confirm-cancel:hover {
+  background: #7a3a9a;
+  transform: scale(1.05);
+}
+
+@media (max-width: 430px) {
+  .game {
+    padding: 10px;
+    justify-content: flex;
+  }
+  h1 {
+    font-size: 32px;
+    margin-bottom: 4px;
+  }
+  .shop-title {
+    position: static;
+    font-size: 20px;
+    margin: 8px
+  }
+  p {
+    font-size: 20px;
+    padding: 6px 12px;
+    margin-bottom: 22px;
+  }
+  p::before, p::after {
+    font-size: 16px;
+    left: -20px;
+  }
+  p::after {
+    right: -20px;
+  }
+  #target {
+    width: 70px;
+    height: 70px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #submit-cheat {
+    position: static;
+    padding: 6px 12px;
+    font-size: 12px;
+    margin: 4px;
+    width: 120px;
+  }
+
+  #open-shop {
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 4px 8px;
+    font-size: 10px;
+    margin: 0;
+    width: 90px;
+  }
+
+  #reset {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 4px 8px;
+    font-size: 10px;
+    margin: 0;
+    width: 90px;
+  }
+
+  #cheat-code {
+    padding: 6px;
+    font-size: 12px;
+    width: 120px;
+    margin-top: 24px;
+  }
+  .skins-container {
+    width: 100%;
+  }
+  .score-pop {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  .score-pop.bonus {
+    font-size: 18px;
+  }
+  .confirm-content {
+    max-width: 200px;
+    width: 80%;
+  }
+  .confirm-content h3 {
+    font-size: 16px;
+  }
+  .confirm-content p {
+    font-size: 12px;
+  }
+  .confirm-ok, .confirm-cancel {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .skins-container {
+    margin: 8px 0;
+    padding: 8px;
+    max-width: 280px;
+  }
+
+  .skins-container.open {
+    max-width: 280px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+  }
+
+  .skins-container.open ~ #reset,
+  .skins-container.open ~ #submit-cheat,
+  .skins-container.open ~ #cheat-code {
+    display: none;
+  }
+
+  .skin-item {
+    margin: 4px 0;
+    padding: 6px;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .skin-item:hover{
+    transform: scale(1.5);
+  }
+
+  .skin-item img {
+    width: 40px;
+    height: 40px;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .skin-item img:hover{
+    transform: scale(1.5);
+  }
+
+  .skin-item p {
+    font-size: 10px;
+    margin: 2px 0;  
+  }
+  .skin-item button {
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+
+}
+  </style>
+</body>
+</html>

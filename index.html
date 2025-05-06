@@ -59,7 +59,7 @@ const skins = [
 
 
 window.onload = () => {
-    let usedCheatCodes = localStorage.getItem('usedCheatCodes') ? JSON.parse(localStorage.getItem('usedCheatCodes')): [];
+    let usedCheatCodes = [];
     let storedScore = localStorage.getItem('score');
     score = !isNaN(parseInt(storedScore)) ? parseInt(storedScore) : 0;
     currentSkin = localStorage.getItem('currentSkin') ? parseInt(localStorage.getItem('currentSkin')) : 0;
